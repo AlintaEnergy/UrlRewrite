@@ -8,7 +8,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using System.Web;
 
 namespace Hi.UrlRewrite.Processing
 {
@@ -22,23 +21,22 @@ namespace Hi.UrlRewrite.Processing
             try
             {
 
-                if (args.Context == null || db == null) return;
+                if (args.HttpContext == null || db == null) return;
 
-                var httpContext = new HttpContextWrapper(args.Context);
-                var requestUri = httpContext.Request.Url;
+                var requestUri = args.HttpContext.Request.Url;
 
                 if (requestUri == null || Configuration.IgnoreUrlPrefixes.Length > 0 && Configuration.IgnoreUrlPrefixes.Any(prefix => requestUri.PathAndQuery.StartsWith(prefix, StringComparison.InvariantCultureIgnoreCase)))
                 {
                     return;
                 }
                 
-                var urlRewriter = new InboundRewriter(httpContext.Request.ServerVariables, httpContext.Request.Headers);
+                var urlRewriter = new InboundRewriter(args.HttpContext.Request.ServerVariables, args.HttpContext.Request.Headers);
                 var requestResult = ProcessUri(requestUri, db, urlRewriter);
 
                 if (requestResult == null || !requestResult.MatchedAtLeastOneRule) return;
 
-                httpContext.Items["urlrewrite:db"] = db.Name;
-                httpContext.Items["urlrewrite:result"] = requestResult;
+                args.HttpContext.Items["urlrewrite:db"] = db.Name;
+                args.HttpContext.Items["urlrewrite:result"] = requestResult;
 
                 var urlRewriterItem = Sitecore.Context.Database.GetItem(new ID(Constants.UrlRewriter_ItemId));
                 if (urlRewriterItem != null)
